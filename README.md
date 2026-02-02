@@ -6,17 +6,188 @@
 
 ## 🎯 Core Concept
 
-Traditional LLMs hallucinate when queried about specialized domains like plant pathology. GreenRetrieval solves this via a **refusal-aware RAG pipeline**:
+<div align="center">
 
-```
-CV Label → Normalize → Retrieve → Rank → Validate → Generate
-   ↓           ↓          ↓         ↓        ↓          ↓
-"Tomato   → [tomato,  → EPPO    → Score  → Check   → Groq
- blight"     late,     SQLite     θ≥0.3    overlap   LLM
-             blight]    (121K)              σ≥1       ✓
+### 🚨 The Problem
+
+**Traditional LLMs hallucinate** when queried about specialized domains like plant pathology
+
+### 💡 Our Solution
+
+**Refusal-aware RAG pipeline** with validated retrieval
+
+</div>
+
+---
+
+### 🔄 Pipeline Architecture
+
+<table>
+<tr>
+<td align="center" width="16%">
+
+**📸 Input**
+
+`CV Label`
+
+_"Tomato blight"_
+
+</td>
+<td align="center">→</td>
+<td align="center" width="16%">
+
+**🔤 Normalize**
+
+`Tokens`
+
+_[tomato, late, blight]_
+
+</td>
+<td align="center">→</td>
+<td align="center" width="16%">
+
+**🔍 Retrieve**
+
+`SQLite`
+
+_121K codes_
+
+</td>
+<td align="center">→</td>
+<td align="center" width="16%">
+
+**📊 Rank**
+
+`Score`
+
+_θ ≥ 0.3_
+
+</td>
+<td align="center">→</td>
+<td align="center" width="16%">
+
+**✅ Validate**
+
+`Check`
+
+_σ ≥ 1_
+
+</td>
+<td align="center">→</td>
+<td align="center" width="16%">
+
+**🤖 Generate**
+
+`Groq LLM`
+
+_Structured response_
+
+</td>
+</tr>
+</table>
+
+---
+
+<table>
+<tr>
+<td width="50%">
+
+#### ✅ When Confident ($\theta \geq 0.3$)
+
+```python
+✓ High semantic overlap detected
+✓ EPPO facts validated
+✓ Generate structured diagnosis
+→ Response: Full 4-section report
 ```
 
-**Refusal Threshold**: If confidence $\theta < 0.3$ or semantic validation fails, the system refuses to respond — prioritizing precision over recall.
+</td>
+<td width="50%">
+
+#### 🚫 When Uncertain ($\theta < 0.3$)
+
+```python
+✗ Low confidence score
+✗ Insufficient token overlap
+✗ Refuse to diagnose
+→ Response: "Cannot verify with confidence"
+```
+
+</td>
+</tr>
+</table>
+
+> **🎯 Design Principle**: Prioritize **precision over recall** — Better to refuse than to misdiagnose.  
+> This ensures agricultural decisions are based on verified information, not LLM hallucinations.
+
+---
+
+### 🗺️ Complete Pipeline Flow
+
+<div align="center">
+
+```mermaid
+graph TD
+    Start([Disease Label Input]) --> Norm[1. Normalize<br/>Tokenize & extract<br/>host/symptoms/locations]
+
+    Norm --> HasTokens{Tokens?}
+    HasTokens -->|No| R1[❌ Refuse:<br/>No candidates]
+
+    HasTokens -->|Yes| Retrieve[2. Retrieve<br/>Query SQLite DB<br/>Score candidates]
+
+    Retrieve --> ScoreOK{Score ≥ 0.30?}
+    ScoreOK -->|No| R2[❌ Refuse:<br/>Low confidence]
+
+    ScoreOK -->|Yes| Cache{Cached?}
+
+    Cache -->|Yes| LoadCache[Load from disk]
+    Cache -->|No| API[3. Fetch EPPO API<br/>overview/names/hosts]
+    API --> SaveCache[Save cache]
+
+    LoadCache --> HasData{Data OK?}
+    SaveCache --> HasData
+
+    HasData -->|No| R3[❌ Refuse:<br/>API failed]
+
+    HasData -->|Yes| Validate[4. Validate<br/>Token overlap ≥ 1]
+
+    Validate --> Valid{Valid?}
+    Valid -->|No| R4[❌ Refuse:<br/>Data mismatch]
+
+    Valid -->|Yes| LLM[5. Generate<br/>Groq LLM<br/>gpt-oss-120b]
+
+    LLM --> Success[✅ Success<br/>EPPO code<br/>Confidence score<br/>Diagnosis]
+
+    R1 --> Stats[📊 Statistics]
+    R2 --> Stats
+    R3 --> Stats
+    R4 --> Stats
+    Success --> Stats
+
+    Stats --> End([Return Result])
+
+    style Start fill:#e1f5e1
+    style End fill:#e1f5e1
+    style Success fill:#c8e6c9
+    style R1 fill:#ffcdd2
+    style R2 fill:#ffcdd2
+    style R3 fill:#ffcdd2
+    style R4 fill:#ffcdd2
+    style Norm fill:#bbdefb
+    style Retrieve fill:#bbdefb
+    style API fill:#fff9c4
+    style LLM fill:#fff9c4
+    style LoadCache fill:#c8e6c9
+```
+
+</div>
+
+**Legend**:
+
+- 🟢 **Green**: Entry/Exit points and successful paths
+- 🔵 **Blue**: Core processing steps (Normalize, Retrieve)
+- 🟡 **Yellow**: External services (EPPO API, LLM)
+- 🔴 **Red**: Refusal points (4 safety gates)
 
 ---
 
