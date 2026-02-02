@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="GreenRetrieval - AI-powered plant disease diagnosis using EPPO database and Groq LLM with retrieval-augmented generation"
+    />
+    <meta
+      name="keywords"
+      content="plant disease, AI diagnosis, EPPO, RAG, phytopathology"
+    />
+    <title>GreenRetrieval Pipeline Flow</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        background: #0d1117;
+        color: #c9d1d9;
+        padding: 20px;
+        min-height: 100vh;
+        line-height: 1.6;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      header {
+        text-align: center;
+        padding: 60px 20px 40px;
+        background: linear-gradient(135deg, #1a7f37 0%, #2ea043 100%);
+        border-radius: 16px;
+        margin-bottom: 40px;
+        box-shadow: 0 8px 32px rgba(46, 160, 67, 0.3);
+      }
+
+      h1 {
+        font-size: 3em;
+        margin-bottom: 10px;
+        color: #ffffff;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      }
+
+      .subtitle {
+        font-size: 1.2em;
+        color: #d1f5e0;
+        margin-bottom: 20px;
+      }
+
+      .badges {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 20px;
+      }
+
+      .badge {
+        background: rgba(255, 255, 255, 0.15);
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.85em;
+        font-weight: 600;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .nav {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 40px;
+        flex-wrap: wrap;
+      }
+
+      .nav-link {
+        padding: 10px 24px;
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        color: #58a6ff;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+      }
+
+      .nav-link:hover {
+        background: #21262d;
+        border-color: #58a6ff;
+        transform: translateY(-2px);
+      }
+
+      .flow {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .stage {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        animation: fadeIn 0.6s ease-in-out;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .stage-number {
+        min-width: 56px;
+        height: 56px;
+        background: linear-gradient(135deg, #1a7f37 0%, #2ea043 100%);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.5em;
+        box-shadow: 0 4px 16px rgba(46, 160, 67, 0.5);
+        flex-shrink: 0;
+      }
+
+      .stage-content {
+        flex: 1;
+        background: #161b22;
+        border-radius: 12px;
+        padding: 24px;
+        border-left: 4px solid #2ea043;
+        border: 1px solid #30363d;
+        transition: all 0.3s ease;
+      }
+
+      .stage-content:hover {
+        transform: translateX(8px);
+        box-shadow: 0 8px 24px rgba(46, 160, 67, 0.2);
+        border-color: #2ea043;
+      }
+
+      .stage-title {
+        font-size: 1.4em;
+        font-weight: 600;
+        color: #e6edf3;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .stage-desc {
+        color: #8b949e;
+        line-height: 1.7;
+        font-size: 0.95em;
+      }
+
+      .code-tag {
+        background: #1f6feb;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-family:
+          "SF Mono", "Monaco", "Inconsolata", "Courier New", monospace;
+        font-size: 0.88em;
+        color: #ffffff;
+        white-space: nowrap;
+      }
+
+      .decision {
+        display: flex;
+        justify-content: center;
+        margin: 16px 0;
+      }
+
+      .decision-box {
+        background: #282e38;
+        border: 3px solid #f59e0b;
+        border-radius: 12px;
+        padding: 16px 36px;
+        font-weight: 600;
+        color: #fbbf24;
+        position: relative;
+        font-size: 1.05em;
+      }
+
+      .decision-box::before {
+        content: "?";
+        position: absolute;
+        left: -18px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 36px;
+        height: 36px;
+        background: #f59e0b;
+        color: #000;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.2em;
+      }
+
+      .branches {
+        display: flex;
+        gap: 20px;
+        margin: 20px 0;
+      }
+
+      .branch {
+        flex: 1;
+        padding: 20px;
+        border-radius: 12px;
+        text-align: center;
+        border: 2px solid;
+      }
+
+      .branch-yes {
+        background: rgba(46, 160, 67, 0.15);
+        border-color: #2ea043;
+      }
+
+      .branch-no {
+        background: rgba(248, 81, 73, 0.15);
+        border-color: #f85149;
+      }
+
+      .branch-label {
+        font-weight: bold;
+        margin-bottom: 12px;
+        font-size: 1.15em;
+      }
+
+      .branch-yes .branch-label {
+        color: #3fb950;
+      }
+
+      .branch-no .branch-label {
+        color: #f85149;
+      }
+
+      .refuse-box {
+        background: rgba(248, 81, 73, 0.15);
+        border-left: 4px solid #f85149;
+        padding: 16px;
+        border-radius: 8px;
+        color: #ffa198;
+        font-weight: 500;
+      }
+
+      .success-box {
+        background: linear-gradient(
+          135deg,
+          rgba(46, 160, 67, 0.2) 0%,
+          rgba(26, 127, 55, 0.2) 100%
+        );
+        border: 2px solid #2ea043;
+        padding: 28px;
+        border-radius: 16px;
+        color: #3fb950;
+        text-align: center;
+        font-size: 1.3em;
+        font-weight: bold;
+        margin: 24px 0;
+        box-shadow: 0 8px 32px rgba(46, 160, 67, 0.3);
+      }
+
+      .success-box-subtitle {
+        font-size: 0.75em;
+        margin-top: 12px;
+        font-weight: normal;
+        color: #7ee787;
+      }
+
+      .connector {
+        display: flex;
+        justify-content: center;
+        margin: 12px 0;
+      }
+
+      .arrow {
+        width: 3px;
+        height: 32px;
+        background: linear-gradient(180deg, #2ea043 0%, #1a7f37 100%);
+        position: relative;
+      }
+
+      .arrow::after {
+        content: "";
+        position: absolute;
+        bottom: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border-left: 10px solid transparent;
+        border-right: 10px solid transparent;
+        border-top: 14px solid #1a7f37;
+      }
+
+      .icon {
+        font-size: 1.3em;
+      }
+
+      .stats-box {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 12px;
+        padding: 28px;
+        margin-top: 40px;
+        border-left: 4px solid #1f6feb;
+      }
+
+      .stats-title {
+        font-weight: 600;
+        color: #e6edf3;
+        margin-bottom: 16px;
+        font-size: 1.3em;
+      }
+
+      .stats-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      .stat-item {
+        background: #0d1117;
+        border: 1px solid #30363d;
+        padding: 12px;
+        border-radius: 8px;
+        font-size: 0.9em;
+        color: #8b949e;
+        transition: all 0.2s ease;
+      }
+
+      .stat-item:hover {
+        border-color: #1f6feb;
+        color: #58a6ff;
+      }
+
+      footer {
+        text-align: center;
+        padding: 40px 20px 20px;
+        color: #8b949e;
+        font-size: 0.9em;
+        border-top: 1px solid #21262d;
+        margin-top: 60px;
+      }
+
+      footer a {
+        color: #58a6ff;
+        text-decoration: none;
+      }
+
+      footer a:hover {
+        text-decoration: underline;
+      }
+
+      .formula-box {
+        background: #0d1117;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 16px;
+        margin: 16px 0;
+        font-family: "SF Mono", monospace;
+        overflow-x: auto;
+      }
+
+      .formula {
+        color: #79c0ff;
+        font-size: 0.95em;
+      }
+
+      @media (max-width: 768px) {
+        h1 {
+          font-size: 2em;
+        }
+
+        .stage {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .branches {
+          flex-direction: column;
+        }
+
+        .stats-list {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>🌿 GreenRetrieval Pipeline</h1>
+        <p class="subtitle">
+          AI-Powered Plant Disease Diagnosis with EPPO Verification
+        </p>
+        <div class="badges">
+          <span class="badge">RAG Architecture</span>
+          <span class="badge">121K EPPO Codes</span>
+          <span class="badge">120B LLM</span>
+          <span class="badge">θ ≥ 0.3</span>
+        </div>
+      </header>
+
+      <div class="nav">
+        <a
+          href="https://github.com/Adriz1611/GreenRetrieval"
+          class="nav-link"
+          target="_blank"
+          >📂 GitHub Repo</a
+        >
+        <a
+          href="https://colab.research.google.com"
+          class="nav-link"
+          target="_blank"
+          >📓 Try in Colab</a
+        >
+        <a
+          href="https://github.com/Adriz1611/GreenRetrieval#readme"
+          class="nav-link"
+          target="_blank"
+          >📚 Documentation</a
+        >
+      </div>
+
+      <div class="flow">
+        <!-- Input -->
+        <div class="stage">
+          <div class="stage-number">▶</div>
+          <div class="stage-content" style="border-left-color: #58a6ff">
+            <div class="stage-title">
+              <span class="icon">📥</span>
+              Input: Disease Label
+            </div>
+            <div class="stage-desc">
+              Computer vision model prediction → Example:
+              <span class="code-tag">"Rice leaf blast"</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="connector"><div class="arrow"></div></div>
+
+        <!-- Stage 1: Normalize -->
+        <div class="stage">
+          <div class="stage-number">1</div>
+          <div class="stage-content">
+            <div class="stage-title">
+              <span class="icon">🔤</span>
+              Normalize Label
+            </div>
+            <div class="stage-desc">
+              Tokenize text → Extract components: host
+              <span class="code-tag">rice</span>, symptoms
+              <span class="code-tag">blast</span>, locations
+              <span class="code-tag">leaf</span> <br /><br />Filter generic
+              terms:
+              <span style="color: #6e7681"
+                >(of, the, and, plant, crop, ...)</span
+              >
+              <br />Preserve location keywords for scoring bonus
+            </div>
+          </div>
+        </div>
+
+        <div class="decision">
+          <div class="decision-box">Tokens found?</div>
+        </div>
+
+        <div class="branches">
+          <div class="branch branch-no">
+            <div class="branch-label">❌ NO</div>
+            <div class="refuse-box">REFUSE: No matching EPPO record</div>
+          </div>
+          <div class="branch branch-yes">
+            <div class="branch-label">✅ YES</div>
+            <div style="color: #7ee787">Continue to retrieval →</div>
+          </div>
+        </div>
+
+        <div class="connector"><div class="arrow"></div></div>
+
+        <!-- Stage 2: Retrieve -->
+        <div class="stage">
+          <div class="stage-number">2</div>
+          <div class="stage-content">
+            <div class="stage-title">
+              <span class="icon">🔍</span>
+              Retrieve from SQLite
+            </div>
+            <div class="stage-desc">
+              Query <span class="code-tag">eppocodes_all.sqlite</span> (121,370
+              active codes) → Match by token overlap
+              <div class="formula-box">
+                <div class="formula">
+                  S(c,q) = overlap_ratio + β<sub>h</sub>·host(0.2) +
+                  β<sub>ℓ</sub>·location(0.3) + β<sub>d</sub>·dtcode(0.15)
+                </div>
+              </div>
+              Rank candidates by composite score → Return top 50
+            </div>
+          </div>
+        </div>
+
+        <div class="decision">
+          <div class="decision-box">Best score ≥ 0.30?</div>
+        </div>
+
+        <div class="branches">
+          <div class="branch branch-no">
+            <div class="branch-label">❌ NO</div>
+            <div class="refuse-box">REFUSE: Match confidence too low</div>
+          </div>
+          <div class="branch branch-yes">
+            <div class="branch-label">✅ YES</div>
+            <div style="color: #7ee787">Proceed to API fetch →</div>
+          </div>
+        </div>
+
+        <div class="connector"><div class="arrow"></div></div>
+
+        <!-- Stage 3: Fetch EPPO -->
+        <div class="stage">
+          <div class="stage-number">3</div>
+          <div class="stage-content">
+            <div class="stage-title">
+              <span class="icon">🌐</span>
+              Fetch EPPO Data
+            </div>
+            <div class="stage-desc">
+              Check cache
+              <span class="code-tag">.eppo_cache/taxons/{CODE}/</span> → Cache
+              hit? Load instantly ⚡ <br /><br />Cache miss → API call:
+              <span class="code-tag"
+                >GET api.eppo.int/gd/v2/taxons/taxon/{CODE}/overview</span
+              >
+              <br />Fetch: overview, names, hosts → Save to JSON cache
+              (persistent) <br /><br /><span style="color: #6e7681"
+                >Rate limit: 60 req/10s | Retry: 3 attempts with exponential
+                backoff</span
+              >
+            </div>
+          </div>
+        </div>
+
+        <div class="decision">
+          <div class="decision-box">Data retrieved?</div>
+        </div>
+
+        <div class="branches">
+          <div class="branch branch-no">
+            <div class="branch-label">❌ NO</div>
+            <div class="refuse-box">REFUSE: EPPO API failure</div>
+          </div>
+          <div class="branch branch-yes">
+            <div class="branch-label">✅ YES</div>
+            <div style="color: #7ee787">Validate facts →</div>
+          </div>
+        </div>
+
+        <div class="connector"><div class="arrow"></div></div>
+
+        <!-- Stage 4: Validate -->
+        <div class="stage">
+          <div class="stage-number">4</div>
+          <div class="stage-content">
+            <div class="stage-title">
+              <span class="icon">✓</span>
+              Validate Against Label
+            </div>
+            <div class="stage-desc">
+              Extract all text from EPPO facts (preferred names, common names,
+              hosts)
+              <br />Tokenize combined text → Check semantic overlap
+              <div class="formula-box">
+                <div class="formula">
+                  |T<sub>label</sub> ∩ T<sub>eppo</sub>| ≥ σ = 1 token minimum
+                </div>
+              </div>
+              Ensures retrieved data actually supports the input label
+            </div>
+          </div>
+        </div>
+
+        <div class="decision">
+          <div class="decision-box">Validation passed?</div>
+        </div>
+
+        <div class="branches">
+          <div class="branch branch-no">
+            <div class="branch-label">❌ NO</div>
+            <div class="refuse-box">REFUSE: Data doesn't support label</div>
+          </div>
+          <div class="branch branch-yes">
+            <div class="branch-label">✅ YES</div>
+            <div style="color: #7ee787">Generate response →</div>
+          </div>
+        </div>
+
+        <div class="connector"><div class="arrow"></div></div>
+
+        <!-- Stage 5: Generate -->
+        <div class="stage">
+          <div class="stage-number">5</div>
+          <div class="stage-content">
+            <div class="stage-title">
+              <span class="icon">🤖</span>
+              Generate LLM Response
+            </div>
+            <div class="stage-desc">
+              Call Groq API → Model:
+              <span class="code-tag">openai/gpt-oss-120b</span> (120B
+              parameters, 500 T/s) <br />Temperature:
+              <span class="code-tag">0.3</span> (low randomness) | Max tokens:
+              <span class="code-tag">1024</span> <br /><br /><strong
+                >Structured 4-section output:</strong
+              >
+              <br />1️⃣ Confirmation (YES/NO + reasoning) <br />2️⃣ Disease
+              Overview (pathogen, symptoms, impact) <br />3️⃣ Treatment Options
+              (methods, ingredients, timing) <br />4️⃣ Prevention Strategies
+              (prioritized actions)
+            </div>
+          </div>
+        </div>
+
+        <div class="connector"><div class="arrow"></div></div>
+
+        <!-- Success -->
+        <div class="success-box">
+          ✅ SUCCESS: Verified Diagnosis
+          <div class="success-box-subtitle">
+            Returns → EPPO Code • Confidence Score (θ) • Full Structured
+            Response
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-box">
+          <div class="stats-title">📊 Pipeline Statistics Tracked</div>
+          <div class="stats-list">
+            <div class="stat-item">💯 Total diagnoses performed</div>
+            <div class="stat-item">✅ Verified diagnoses count</div>
+            <div class="stat-item">🚫 Refused diagnoses count</div>
+            <div class="stat-item">🎯 Average confidence score</div>
+            <div class="stat-item">💾 Cache hits (disk)</div>
+            <div class="stat-item">🌐 Cache misses (API)</div>
+            <div class="stat-item">📞 Total API calls made</div>
+            <div class="stat-item">🤖 LLM generation calls</div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <p>Built with 🌱 for reliable agricultural AI</p>
+        <p style="margin-top: 10px">
+          <a href="https://github.com/Adriz1611/GreenRetrieval" target="_blank"
+            >View on GitHub</a
+          >
+          • <a href="https://data.eppo.int" target="_blank">EPPO Database</a> •
+          <a href="https://console.groq.com" target="_blank">Groq AI</a>
+        </p>
+      </footer>
+    </div>
+  </body>
+</html>
