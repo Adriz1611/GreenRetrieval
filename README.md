@@ -166,18 +166,26 @@ graph TD
 
     Stats --> End([Return Result])
 
-    style Start fill:#e1f5e1
-    style End fill:#e1f5e1
-    style Success fill:#c8e6c9
-    style R1 fill:#ffcdd2
-    style R2 fill:#ffcdd2
-    style R3 fill:#ffcdd2
-    style R4 fill:#ffcdd2
-    style Norm fill:#bbdefb
-    style Retrieve fill:#bbdefb
-    style API fill:#fff9c4
-    style LLM fill:#fff9c4
-    style LoadCache fill:#c8e6c9
+    style Start fill:#e1f5e1,stroke:#333,stroke-width:2px,color:#000
+    style End fill:#e1f5e1,stroke:#333,stroke-width:2px,color:#000
+    style Success fill:#c8e6c9,stroke:#333,stroke-width:2px,color:#000
+    style R1 fill:#ffcdd2,stroke:#333,stroke-width:2px,color:#000
+    style R2 fill:#ffcdd2,stroke:#333,stroke-width:2px,color:#000
+    style R3 fill:#ffcdd2,stroke:#333,stroke-width:2px,color:#000
+    style R4 fill:#ffcdd2,stroke:#333,stroke-width:2px,color:#000
+    style Norm fill:#bbdefb,stroke:#333,stroke-width:2px,color:#000
+    style Retrieve fill:#bbdefb,stroke:#333,stroke-width:2px,color:#000
+    style API fill:#fff9c4,stroke:#333,stroke-width:2px,color:#000
+    style LLM fill:#fff9c4,stroke:#333,stroke-width:2px,color:#000
+    style LoadCache fill:#c8e6c9,stroke:#333,stroke-width:2px,color:#000
+    style SaveCache fill:#fff9c4,stroke:#333,stroke-width:2px,color:#000
+    style Validate fill:#bbdefb,stroke:#333,stroke-width:2px,color:#000
+    style Stats fill:#e0e0e0,stroke:#333,stroke-width:2px,color:#000
+    style HasTokens stroke:#333,stroke-width:2px,color:#000
+    style ScoreOK stroke:#333,stroke-width:2px,color:#000
+    style Cache stroke:#333,stroke-width:2px,color:#000
+    style HasData stroke:#333,stroke-width:2px,color:#000
+    style Valid stroke:#333,stroke-width:2px,color:#000
 ```
 
 </div>
