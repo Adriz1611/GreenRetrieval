@@ -11,10 +11,10 @@ try:
 except ImportError:
     HAS_TQDM = False
 
-from src.green_retrieval import diagnose
-from src.green_retrieval.config import Config
-from src.green_retrieval.eppo_client import EPPOClient
-from src.green_retrieval.generation import ResponseGenerator
+from src import diagnose
+from src.config import Config
+from src.eppo_client import EPPOClient
+from src.generation import ResponseGenerator
 
 
 def main():

@@ -43,7 +43,7 @@ Where:
 ## 🏗️ Architecture
 
 ```
-src/green_retrieval/
+src/
 ├── config.py          # Centralized constants (θ=0.3, β coefficients, model configs)
 ├── normalization.py   # Token extraction: L → {host, symptoms, locations}
 ├── retrieval.py       # SQLite query + scoring: S(c, q) → ranked candidates
@@ -66,7 +66,7 @@ src/green_retrieval/
 ### Python Package
 
 ```python
-from src.green_retrieval import diagnose
+from src import diagnose
 
 result = diagnose("Rice leaf blast")
 
@@ -91,15 +91,55 @@ Open `run_colab.ipynb` for interactive notebook with step-by-step cells.
 
 ## 🧮 Performance Characteristics
 
-| Metric                   | Value                     | Notes                                                     |
-| ------------------------ | ------------------------- | --------------------------------------------------------- |
-| **Database Size**        | 121,370 active EPPO codes | Full taxonomic coverage (fungi, bacteria, viruses, pests) |
-| **Confidence Threshold** | $\theta = 0.3$            | Empirically tuned (0.45 → 0.3 reduced false refusals)     |
-| **Cache Hit Rate**       | ~80% (typical)            | SQLite + JSON disk cache for EPPO API responses           |
-| **LLM Model**            | openai/gpt-oss-120b       | 500 T/s throughput, 250K TPM limit                        |
-| **Avg. Latency**         | ~2-3s per diagnosis       | 0.5s retrieval + 1.5s LLM + 0.5s API                      |
+<table>
+<tr>
+<td width="50%">
 
-**Design Trade-off**: High precision (few false positives) at cost of recall (refuses uncertain matches). Critical for agricultural decision-making where incorrect diagnoses cause economic harm.
+### 📊 System Metrics
+
+| Metric                      | Value                         |
+| --------------------------- | ----------------------------- |
+| 🗄️ **Database Size**        | **121,370** active EPPO codes |
+| 🎯 **Confidence Threshold** | $\theta = 0.3$                |
+| 💾 **Cache Hit Rate**       | **~80%** (typical)            |
+| ⚡ **Avg. Latency**         | **2-3 seconds**               |
+
+</td>
+<td width="50%">
+
+### 🤖 LLM Configuration
+
+| Parameter          | Value                 |
+| ------------------ | --------------------- |
+| 🧠 **Model**       | `openai/gpt-oss-120b` |
+| 🚀 **Throughput**  | 500 tokens/second     |
+| 📈 **Rate Limit**  | 250K TPM              |
+| 🌡️ **Temperature** | 0.3 (factual)         |
+
+</td>
+</tr>
+</table>
+
+#### 📐 Latency Breakdown
+
+```
+┌─────────────────────────────────────┐
+│ Retrieval (SQLite)     │ 0.5s │ 20% │
+│ LLM Generation (Groq)  │ 1.5s │ 60% │
+│ API Calls (EPPO)       │ 0.5s │ 20% │
+└─────────────────────────────────────┘
+```
+
+#### 🎓 Design Philosophy
+
+> **High Precision over High Recall**  
+> The system prioritizes **accuracy** by refusing uncertain matches ($\theta < 0.3$) rather than providing potentially incorrect diagnoses. This design choice is critical for agricultural decision-making where false positives can lead to:
+>
+> - ❌ Unnecessary pesticide application
+> - 💰 Economic losses from wrong treatments
+> - 🌍 Environmental damage from improper interventions
+
+**Coverage**: Full taxonomic coverage including fungi 🍄, bacteria 🦠, viruses 🧬, and pests 🐛
 
 ---
 
@@ -179,7 +219,14 @@ DiagnosisResult(
 
 ```
 GreenRetrieval/
-├── src/green_retrieval/    # Modular Python package (8 modules)
+├── src/                    # Modular Python package (8 modules)
+│   ├── config.py
+│   ├── normalization.py
+│   ├── retrieval.py
+│   ├── eppo_client.py
+│   ├── validation.py
+│   ├── generation.py
+│   └── pipeline.py
 ├── run.py                  # CLI entry point with progress tracking
 ├── run_colab.ipynb         # Self-contained Colab notebook
 ├── requirements.txt        # groq, requests, tqdm
